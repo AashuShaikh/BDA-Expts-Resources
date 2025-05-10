@@ -1,0 +1,435 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\b\fs36 \cf0 Exp 4:\
+A)
+\f1\b0\fs24  \
+import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.IntWritable;\
+import org.apache.hadoop.io.NullWritable;\
+import org.apache.hadoop.mapreduce.Job;\
+import org.apache.hadoop.mapreduce.Mapper;\
+import org.apache.hadoop.mapreduce.Reducer;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class MaxInteger \{\
+    public static class MaxMapper extends Mapper<Object, org.apache.hadoop.io.Text, NullWritable, IntWritable> \{\
+        private final static IntWritable number = new IntWritable();\
+\
+        public void map(Object key, org.apache.hadoop.io.Text value, Context context) throws IOException, InterruptedException \{\
+            try \{\
+                number.set(Integer.parseInt(value.toString()));\
+                context.write(NullWritable.get(), number);\
+            \} catch (NumberFormatException e) \{\
+                // Log or skip invalid lines\
+            \}\
+        \}\
+    \}\
+\
+    public static class MaxReducer extends Reducer<NullWritable, IntWritable, NullWritable, IntWritable> \{\
+        public void reduce(NullWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException \{\
+            int max = Integer.MIN_VALUE;\
+            for (IntWritable val : values) \{\
+                max = Math.max(max, val.get());\
+            \}\
+            context.write(NullWritable.get(), new IntWritable(max));\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Max Integer");\
+        job.setJarByClass(MaxInteger.class);\
+        job.setMapperClass(MaxMapper.class);\
+        job.setReducerClass(MaxReducer.class);\
+        job.setOutputKeyClass(NullWritable.class);\
+        job.setOutputValueClass(IntWritable.class);\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+\
+
+\f0\b\fs32 B) 
+\f1\b0\fs24 \
+import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.*;\
+import org.apache.hadoop.mapreduce.*;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class AverageInteger \{\
+    public static class AvgMapper extends Mapper<Object, Text, Text, IntWritable> \{\
+        private final static Text avgKey = new Text("avg");\
+        private final static IntWritable number = new IntWritable();\
+\
+        @Override\
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException \{\
+            try \{\
+                int num = Integer.parseInt(value.toString().trim());\
+                number.set(num);\
+                context.write(avgKey, number);\
+            \} catch (NumberFormatException e) \{\
+                // Skip invalid lines\
+            \}\
+        \}\
+    \}\
+\
+    public static class AvgReducer extends Reducer<Text, IntWritable, Text, DoubleWritable> \{\
+        @Override\
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException \{\
+            int sum = 0, count = 0;\
+            for (IntWritable val : values) \{\
+                sum += val.get();\
+                count++;\
+            \}\
+\
+            if (count > 0) \{\
+                context.write(key, new DoubleWritable((double) sum / count));\
+            \}\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Average Integer");\
+        job.setJarByClass(AverageInteger.class);\
+        job.setMapperClass(AvgMapper.class);\
+        job.setReducerClass(AvgReducer.class);\
+        job.setMapOutputKeyClass(Text.class);\
+        job.setMapOutputValueClass(IntWritable.class);\
+        job.setOutputKeyClass(Text.class);\
+        job.setOutputValueClass(DoubleWritable.class);\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+\
+
+\f0\b\fs34 C)
+\f1\b0\fs24 \
+import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.IntWritable;\
+import org.apache.hadoop.io.NullWritable;\
+import org.apache.hadoop.io.Text;\
+import org.apache.hadoop.mapreduce.Job;\
+import org.apache.hadoop.mapreduce.Mapper;\
+import org.apache.hadoop.mapreduce.Reducer;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class UniqueIntegers \{\
+\
+    public static class UniqueMapper extends Mapper<Object, Text, IntWritable, NullWritable> \{\
+        private final static IntWritable number = new IntWritable();\
+\
+        @Override\
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException \{\
+            try \{\
+                int num = Integer.parseInt(value.toString().trim());\
+                number.set(num);\
+                context.write(number, NullWritable.get());\
+            \} catch (NumberFormatException e) \{\
+                // Skip invalid lines silently\
+            \}\
+        \}\
+    \}\
+\
+    public static class UniqueReducer extends Reducer<IntWritable, NullWritable, IntWritable, NullWritable> \{\
+        @Override\
+        public void reduce(IntWritable key, Iterable<NullWritable> values, Context context)\
+                throws IOException, InterruptedException \{\
+            context.write(key, NullWritable.get());\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Unique Integers");\
+        job.setJarByClass(UniqueIntegers.class);\
+        job.setMapperClass(UniqueMapper.class);\
+        job.setReducerClass(UniqueReducer.class);\
+        job.setMapOutputKeyClass(IntWritable.class);\
+        job.setMapOutputValueClass(NullWritable.class);\
+        job.setOutputKeyClass(IntWritable.class);\
+        job.setOutputValueClass(NullWritable.class);\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+
+\f0\b\fs34 D)
+\f1\b0\fs24 \
+import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.*;\
+import org.apache.hadoop.mapreduce.Job;\
+import org.apache.hadoop.mapreduce.Mapper;\
+import org.apache.hadoop.mapreduce.Reducer;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class DistinctCount \{\
+\
+    public static class DistinctMapper extends Mapper<Object, Text, IntWritable, NullWritable> \{\
+        private final static IntWritable number = new IntWritable();\
+\
+        @Override\
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException \{\
+            try \{\
+                int num = Integer.parseInt(value.toString().trim());\
+                number.set(num);\
+                context.write(number, NullWritable.get());\
+            \} catch (NumberFormatException e) \{\
+                // Skip invalid input silently\
+            \}\
+        \}\
+    \}\
+\
+    public static class DistinctReducer extends Reducer<IntWritable, NullWritable, Text, IntWritable> \{\
+        private int distinctCount = 0;\
+\
+        @Override\
+        public void reduce(IntWritable key, Iterable<NullWritable> values, Context context) \{\
+            distinctCount++; // Count each unique key once\
+        \}\
+\
+        @Override\
+        protected void cleanup(Context context) throws IOException, InterruptedException \{\
+            context.write(new Text("Distinct Count"), new IntWritable(distinctCount));\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Distinct Count");\
+        job.setJarByClass(DistinctCount.class);\
+        job.setMapperClass(DistinctMapper.class);\
+        job.setReducerClass(DistinctReducer.class);\
+        job.setMapOutputKeyClass(IntWritable.class);\
+        job.setMapOutputValueClass(NullWritable.class);\
+        job.setOutputKeyClass(Text.class);\
+        job.setOutputValueClass(IntWritable.class);\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+\
+\
+
+\f0\b\fs34 Exp 5:
+\f1\b0\fs24 \
+
+\f0\b\fs34 A)\
+
+\f1\b0\fs30 import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.*;\
+import org.apache.hadoop.mapreduce.*;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class PhraseFrequency \{\
+    public static class PhraseMapper extends Mapper<Object, Text, Text, IntWritable> \{\
+        private final static IntWritable one = new IntWritable(1);\
+        private final Text phrase = new Text();\
+\
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException \{\
+            String[] words = value.toString().toLowerCase().split("\\\\W+");\
+            for (int i = 0; i < words.length - 1; i++) \{\
+                if (!words[i].isEmpty() && !words[i + 1].isEmpty()) \{\
+                    phrase.set(words[i] + " " + words[i + 1]);\
+                    context.write(phrase, one);\
+                \}\
+            \}\
+        \}\
+    \}\
+\
+    public static class SumReducer extends Reducer<Text, IntWritable, Text, IntWritable> \{\
+        private final IntWritable result = new IntWritable();\
+\
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException \{\
+            int count = 0;\
+            for (IntWritable val : values) count += val.get();\
+            result.set(count);\
+            context.write(key, result);\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Phrase Frequency");\
+        job.setJarByClass(PhraseFrequency.class);\
+        job.setMapperClass(PhraseMapper.class);\
+        job.setReducerClass(SumReducer.class);\
+        job.setOutputKeyClass(Text.class);\
+        job.setOutputValueClass(IntWritable.class);\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+\
+
+\f0\b\fs34 B)\
+
+\f1\b0\fs22 import java.io.IOException;\
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.*;\
+import org.apache.hadoop.mapreduce.*;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\
+public class KeywordSearch \{\
+    public static class SearchMapper extends Mapper<LongWritable, Text, NullWritable, Text> \{\
+        private static final String KEYWORD = "Pizza Hut";\
+\
+        @Override\
+        protected void map(LongWritable key, Text value, Context context)\
+                throws IOException, InterruptedException \{\
+            String line = value.toString();\
+            if (line.toLowerCase().contains(KEYWORD.toLowerCase())) \{\
+                context.write(NullWritable.get(), value);\
+            \}\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        if (args.length != 3) \{\
+            System.err.println("Usage: KeywordSearch <input> <output> <keyword>");\
+            System.exit(1);\
+        \}\
+\
+        Configuration conf = new Configuration();\
+        conf.set("keyword", args[2]);\
+\
+        Job job = Job.getInstance(conf, "Keyword Search");\
+        job.setJarByClass(KeywordSearch.class);\
+        job.setMapperClass(SearchMapper.class);\
+        job.setNumReduceTasks(0); // Mapper-only job\
+        job.setOutputKeyClass(NullWritable.class);\
+        job.setOutputValueClass(Text.class);\
+\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+
+\f0\b\fs30 C)
+\f1\b0\fs22 \
+import java.io.IOException;\
+import java.util.StringTokenizer;\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+import org.apache.hadoop.conf.Configuration;\
+import org.apache.hadoop.fs.Path;\
+import org.apache.hadoop.io.*;\
+import org.apache.hadoop.mapreduce.*;\
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;\
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 \
+\
+public class AreaAggregator \{\
+\
+    public static class AreaMapper extends Mapper<Object, Text, Text, IntWritable> \{\
+        private final static IntWritable one = new IntWritable(1);\
+        private Text area = new Text();\
+\
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException \{\
+            String line = value.toString().toLowerCase();\
+            // Check for known areas\
+            if (line.contains("centre")) \{\
+                area.set("centre");\
+                context.write(area, one);\
+            \}\
+            if (line.contains("north")) \{\
+                area.set("north");\
+                context.write(area, one);\
+            \}\
+            if (line.contains("south")) \{\
+                area.set("south");\
+                context.write(area, one);\
+            \}\
+            if (line.contains("east")) \{\
+                area.set("east");\
+                context.write(area, one);\
+            \}\
+            if (line.contains("west")) \{\
+                area.set("west");\
+                context.write(area, one);\
+            \}\
+        \}\
+    \}\
+\
+    public static class FilterReducer extends Reducer<Text, IntWritable, Text, IntWritable> \{\
+        public void reduce(Text key, Iterable<IntWritable> values, Context context)\
+                throws IOException, InterruptedException \{\
+            int sum = 0;\
+            for (IntWritable val : values)\
+                sum += val.get();\
+\
+            // Only output if more than 1 restaurant in the area\
+            if (sum > 1)\
+                context.write(key, new IntWritable(sum));\
+        \}\
+    \}\
+\
+    public static void main(String[] args) throws Exception \{\
+        Configuration conf = new Configuration();\
+        Job job = Job.getInstance(conf, "Area Aggregator");\
+        job.setJarByClass(AreaAggregator.class);\
+\
+        job.setMapperClass(AreaMapper.class);\
+        job.setReducerClass(FilterReducer.class);\
+\
+        job.setOutputKeyClass(Text.class);\
+        job.setOutputValueClass(IntWritable.class);\
+\
+        FileInputFormat.addInputPath(job, new Path(args[0]));\
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));\
+\
+        System.exit(job.waitForCompletion(true) ? 0 : 1);\
+    \}\
+\}\
+\
+\
+\
+Input.txt:\
+1. Pizza Hut offers Italian food in the centre city.\
+2. Domino's serves Italian pizzas in the centre area.\
+3. Pizza Hut has affordable prices and good food.\
+4. KFC is popular for chicken in the north side.\
+5. Pizza Hut is located in the centre and serves Italian cuisine.\
+6. McDonald's is known for burgers and is also in the centre.\
+7. KFC is located near the central area.\
+\
+\
+\
+}
